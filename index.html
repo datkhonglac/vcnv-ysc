@@ -42,7 +42,7 @@ header small{color:var(--mute);font-weight:500}
 .rows{padding:0;display:flex;flex-direction:column}
 .title{align-self:flex-end;margin:-2px -2px 0 0;padding:8px 22px 8px 26px;font-weight:800;font-size:clamp(13px,1.6vw,20px);background:linear-gradient(90deg,#2f8a45,#1a5c2e);border:2px solid #f5dc8a;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%);white-space:nowrap}
 .rowlist{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:6px;padding:10px 12px 14px}
-.row{--c:clamp(20px,3vw,44px);display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:999px;cursor:pointer;border:0;background:none;color:inherit;font:inherit;text-align:left;width:100%}
+.row{--c:clamp(20px,2.8vw,42px);display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:999px;cursor:pointer;border:0;background:none;color:inherit;font:inherit;text-align:left;width:100%}
 .row:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dots{flex:1;display:flex;gap:clamp(3px,.5vw,7px);flex-wrap:wrap}
 .dot{width:var(--c);height:var(--c);border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:calc(var(--c)*.5);color:#062a12;
@@ -50,6 +50,8 @@ header small{color:var(--mute);font-weight:500}
 .row.picked .dot{background:radial-gradient(circle at 35% 30%,#fff 0 12%,#d8f7b8 40%,#86d46e 75%,#3c9a3a 100%);box-shadow:0 0 0 2px #0a2617,0 0 14px var(--glow)}
 .row.solved .dot{background:radial-gradient(circle at 35% 30%,#fffbe0 0 14%,#ffe57a 45%,#f5b800 100%);color:#3a2500;transform:rotateY(360deg)}
 .row.failed .dot{background:radial-gradient(circle at 35% 30%,#8a93a8 0 10%,#4a5470 50%,#2a2440 100%);box-shadow:0 0 0 2px #0a2617}
+.cnt{flex:none;font-weight:800;font-size:calc(var(--c)*.4);line-height:1;color:var(--gold);background:#06180dcc;border:1.5px solid var(--edge);border-radius:999px;padding:.45em .8em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row.failed .cnt{opacity:.5}
 .num{flex:none;width:calc(var(--c)*.9);height:calc(var(--c)*.9);border-radius:8px;display:grid;place-items:center;font-weight:900;background:#0a2617;border:2px solid #c9a23a;font-size:calc(var(--c)*.45)}
 .row.picked .num{background:var(--gold);color:#2b1c00;border-color:#fff3b0}
 .row.failed .num{opacity:.5}
@@ -271,7 +273,7 @@ function render(){
  $("rowlist").innerHTML = ROWS.map((r,i) => {
   const L = letters(r.a), show = st[i]==="solved";
   const cls = ["row", i===cur?"picked":"", st[i]!=="idle"?st[i]:""].join(" ");
-  return `<button class="${cls}" data-i="${i}" aria-label="Hàng ${i+1}, ${L.length} chữ cái"><span class="num">${i+1}</span><span class="dots">${L.map(c=>`<span class="dot">${show?c:""}</span>`).join("")}</span></button>`;
+  return `<button class="${cls}" data-i="${i}" aria-label="Hàng ${i+1}, ${L.length} chữ cái"><span class="num">${i+1}</span><span class="dots">${L.map(c=>`<span class="dot">${show?c:""}</span>`).join("")}</span><span class="cnt">${L.length} chữ</span></button>`;
  }).join("");
  document.querySelectorAll(".cover").forEach(c => {
   const i = +c.dataset.p - 1;
