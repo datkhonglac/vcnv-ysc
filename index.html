@@ -240,6 +240,7 @@ button.b.red{background:linear-gradient(180deg,#ff6474,#d62839);border-color:#ff
   <button class="b" id="timeBtn" disabled>Bắt đầu 15s</button>
   <span class="sp"></span>
   <label class="b ghost file" style="display:inline-flex;align-items:center">Đổi ảnh nền<input type="file" id="imgFile" accept="image/*"></label>
+  <button class="b ghost" id="musicBtn" aria-pressed="false">Bật nhạc nền</button>
   <button class="b ghost" id="fsBtn">Toàn màn hình</button>
   <button class="b ghost" id="resetBtn">Chơi lại</button>
  </section>
@@ -295,8 +296,73 @@ function beep(f, d=.15, type="sine", v=.15){
   o.start(); o.stop(audio.currentTime + d);
  }catch(e){}
 }
-const okSound = () => [523,659,784,1046].forEach((f,k)=>setTimeout(()=>beep(f,.22,"triangle"),k*110));
-const badSound = () => { beep(180,.35,"sawtooth",.12); setTimeout(()=>beep(140,.4,"sawtooth",.12),180); };
+
+/* ====== NHẠC NỀN (tạo bằng Web Audio, không cần file) ====== */
+const MV = .2, BPM = 112, SPB = 60/BPM/4;
+const CH = [[57,60,64],[53,57,60],[50,53,57],[52,56,59]];   // Am – F – Dm – E
+const BASS = [45,41,38,40];
+const mtof = m => 440 * 2 ** ((m-69)/12);
+const music = {on:false, gain:null, timer:null, step:0, next:0, noise:null};
+function ac(){
+ audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+ if(audio.state === "suspended") audio.resume();
+ return audio;
+}
+function voice(t,f,dur,type,vol,cut){
+ const a = audio, o = a.createOscillator(), fl = a.createBiquadFilter(), g = a.createGain();
+ o.type = type; o.frequency.value = f; fl.type = "lowpass"; fl.frequency.value = cut;
+ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.connect(fl); fl.connect(g); g.connect(music.gain); o.start(t); o.stop(t+dur+.05);
+}
+function kick(t){
+ const a = audio, o = a.createOscillator(), g = a.createGain();
+ o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(45,t+.12);
+ g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+.22);
+ o.connect(g); g.connect(music.gain); o.start(t); o.stop(t+.25);
+}
+function hat(t,vol){
+ const a = audio;
+ if(!music.noise){ const b = a.createBuffer(1, a.sampleRate*.1, a.sampleRate), d = b.getChannelData(0); for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1; music.noise = b; }
+ const n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+ n.buffer = music.noise; f.type = "highpass"; f.frequency.value = 7000;
+ g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+.05);
+ n.connect(f); f.connect(g); g.connect(music.gain); n.start(t); n.stop(t+.06);
+}
+function playStep(step,t){
+ const bar = Math.floor(step/16) % 4, s = step % 16, hot = !!tick;
+ if(s % 4 === 0) kick(t);
+ if(s % 4 === 2) hat(t,.25);
+ if(hot && s % 2 === 1) hat(t,.13);
+ if(s % 2 === 0) voice(t, mtof(BASS[bar] + (s % 8 === 6 ? 12 : 0)), SPB*1.6, "sawtooth", .32, hot ? 900 : 600);
+ voice(t, mtof(CH[bar][s % 3] + 12), SPB*.9, "triangle", hot ? .1 : .07, 3000);
+ if(s === 0) CH[bar].forEach(n => voice(t, mtof(n), SPB*16, "sine", .05, 1200));
+}
+function startMusic(){
+ const a = ac(); stopMusic(true);
+ music.gain = a.createGain(); music.gain.gain.setValueAtTime(0,a.currentTime);
+ music.gain.gain.linearRampToValueAtTime(MV,a.currentTime+1); music.gain.connect(a.destination);
+ music.step = 0; music.next = a.currentTime + .05;
+ music.timer = setInterval(() => {
+  while(music.next < audio.currentTime + .12){ playStep(music.step, music.next); music.next += SPB; music.step++; }
+ }, 25);
+}
+function stopMusic(now){
+ clearInterval(music.timer); music.timer = null;
+ const g = music.gain; if(!g) return; music.gain = null;
+ const t = audio.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value,t);
+ g.gain.linearRampToValueAtTime(0, t + (now ? .05 : .6));
+ setTimeout(() => g.disconnect(), now ? 100 : 700);
+}
+function duck(){
+ if(!music.gain) return;
+ const g = music.gain.gain, t = audio.currentTime;
+ g.cancelScheduledValues(t); g.setValueAtTime(g.value,t);
+ g.linearRampToValueAtTime(.05,t+.05); g.linearRampToValueAtTime(MV,t+1.1);
+}
+function setMusicBtn(){ $("musicBtn").textContent = music.on ? "Tắt nhạc nền" : "Bật nhạc nền"; $("musicBtn").setAttribute("aria-pressed", music.on); }
+
+const okSound = () => duck() || [523,659,784,1046].forEach((f,k)=>setTimeout(()=>beep(f,.22,"triangle"),k*110));
+const badSound = () => { duck(); beep(180,.35,"sawtooth",.12); setTimeout(()=>beep(140,.4,"sawtooth",.12),180); };
 
 function say(el, text, kind){ const m=$(el); m.textContent=text; m.className="msg "+kind; }
 
@@ -336,7 +402,7 @@ function startTimer(){
  tick = setInterval(() => {
   left--; setBar();
   if(left<=5 && left>0) beep(660,.08,"square",.08);
-  if(left<=0){ stopTimer(); $("sec").textContent="0"; say("msg","Hết giờ!","bad"); beep(300,.6,"square",.12); }
+  if(left<=0){ stopTimer(); $("sec").textContent="0"; say("msg","Hết giờ!","bad"); duck(); beep(300,.6,"square",.12); }
  },1000);
  setBar(); $("sec").textContent = left; beep(990,.1);
  $("answer").focus();
@@ -345,7 +411,7 @@ function startTimer(){
 function guessKw(){
  const v = $("kw").value.trim(); if(!v || done) return;
  if(norm(v)===norm(KEYWORD)){
-  done = true; stopTimer();
+  done = true; stopTimer(); try{ stopMusic(); }catch(e){}
   say("kwMsg","Chính xác! Chướng ngại vật đã được giải.","ok");
   $("winWord").textContent = KEYWORD.toUpperCase(); $("win").classList.add("show");
   okSound(); setTimeout(okSound,500); render();
@@ -362,6 +428,10 @@ $("answer").addEventListener("keydown", e => { if(e.key==="Enter") check(); });
 $("kwBtn").addEventListener("click", guessKw);
 $("kw").addEventListener("keydown", e => { if(e.key==="Enter") guessKw(); });
 $("timeBtn").addEventListener("click", startTimer);
+$("musicBtn").addEventListener("click", () => {
+ try{ music.on = !music.on; if(music.on && !done) startMusic(); else stopMusic(); }catch(e){ music.on = false; }
+ setMusicBtn();
+});
 $("winClose").addEventListener("click", () => $("win").classList.remove("show"));
 $("fsBtn").addEventListener("click", () => {
  try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){}
@@ -374,7 +444,7 @@ $("resetBtn").addEventListener("click", () => {
  st.fill("idle"); cur=-1; done=false; stopTimer(); left=TIME; setBar(); $("sec").textContent="";
  $("qlabel").textContent="";
  const q=$("qtext"); q.classList.add("empty"); q.textContent="";
- $("answer").value=""; $("kw").value=""; say("msg","","info"); say("kwMsg","","info"); render();
+ $("answer").value=""; $("kw").value=""; try{ if(music.on) startMusic(); }catch(e){} say("msg","","info"); say("kwMsg","","info"); render();
 });
 $("imgFile").addEventListener("change", e => {
  const f = e.target.files && e.target.files[0]; if(!f) return;
