@@ -41,11 +41,11 @@ header small{color:var(--mute);font-weight:500}
 /* ---------- rows ---------- */
 .rows{padding:0;display:flex;flex-direction:column}
 .title{align-self:flex-end;margin:-2px -2px 0 0;padding:8px 22px 8px 26px;font-weight:800;font-size:clamp(13px,1.6vw,20px);background:linear-gradient(90deg,#2f8a45,#1a5c2e);border:2px solid #f5dc8a;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%);white-space:nowrap}
-.rowlist{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:6px;padding:10px 12px 14px}
-.row{--c:clamp(20px,2.8vw,42px);display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:999px;cursor:pointer;border:0;background:none;color:inherit;font:inherit;text-align:left;width:100%}
+.rowlist{container-type:inline-size;--n:10;flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:6px;padding:10px 12px 14px}
+.row{--c:clamp(16px,calc((100cqw - 48px)/(var(--n)*1.14 + 3.3)),46px);display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:999px;cursor:pointer;border:0;background:none;color:inherit;font:inherit;text-align:left;width:100%}
 .row:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.dots{flex:1;display:flex;gap:clamp(3px,.5vw,7px);flex-wrap:wrap}
-.dot{width:var(--c);height:var(--c);border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:calc(var(--c)*.5);color:#062a12;
+.dots{flex:1;display:flex;gap:calc(var(--c)*.14);flex-wrap:nowrap}
+.dot{flex:none;width:var(--c);height:var(--c);border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:calc(var(--c)*.5);color:#062a12;
  background:radial-gradient(circle at 35% 30%,#dff5e1 0 12%,#56b463 40%,#2a7a3a 75%,#0f3d1d 100%);box-shadow:0 0 0 2px #0a2617,0 2px 4px #0008 inset;transition:background .4s,transform .4s}
 .row.picked .dot{background:radial-gradient(circle at 35% 30%,#fff 0 12%,#d8f7b8 40%,#86d46e 75%,#3c9a3a 100%);box-shadow:0 0 0 2px #0a2617,0 0 14px var(--glow)}
 .row.solved .dot{background:radial-gradient(circle at 35% 30%,#fffbe0 0 14%,#ffe57a 45%,#f5b800 100%);color:#3a2500;transform:rotateY(360deg)}
@@ -93,7 +93,7 @@ button.b.red{background:linear-gradient(180deg,#ff6474,#d62839);border-color:#ff
 .win div{text-align:center;padding:30px 40px}
 .win p{margin:0;color:var(--mute);font-weight:700;font-size:clamp(16px,2vw,22px)}
 .win h2{margin:.2em 0;font-size:clamp(46px,9vw,120px);font-weight:900;line-height:1.05;color:var(--gold);text-shadow:0 0 40px #ffd23f88}
-@media(max-width:760px){.board{grid-template-columns:minmax(0,1fr)}.row{--c:clamp(20px,7.4vw,40px)}}
+@media(max-width:760px){.board{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -267,6 +267,7 @@ const letters = s => Array.from(s.normalize("NFC").toUpperCase().replace(/\s+/g,
 const st = ROWS.map(() => "idle"); // idle | solved | failed
 let cur = -1, left = TIME, tick = null, done = false, audio = null;
 
+$("rowlist").style.setProperty("--n", Math.max(...ROWS.map(r => letters(r.a).length)));
 $("kwTitle").textContent = `CHƯỚNG NGẠI VẬT CÓ ${letters(KEYWORD).length} CHỮ CÁI`;
 
 function render(){
